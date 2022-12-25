@@ -12,21 +12,37 @@ class bcolors:
 	UNDERLINE = '\033[4m'
 
 class MazeGenerator:
+	DIR_LIST = [0, 1, 2, 3]
+	VISITED = []
+	REVISITED = []
+
 	def __init__(self, maze_dimensions, initial_position, final_position):
 		self.MAZE_MAP_DIMENSIONS = maze_dimensions
+		self.COLUMNS = maze_dimensions[0]
+		self.ROWS = maze_dimensions[1]
 		self.INITIAL_POSITION = initial_position
+		self.INITIAL_X = initial_position[0]
+		self.INITIAL_Y = initial_position[1]
 		self.FINAL_POSITION = final_position
+		self.FINAL_X = final_position[0]
+		self.FINAL_Y = final_position[1]
+		self.init_maze()
 		valdity_check = self.check_initial_parameters()
 		if not valdity_check['valid']:
 			raise Exception(valdity_check['error'])
 	
+	def init_maze(self):
+		self.MAZE = [# (E, S)
+			(1, 1) for i in range(self.COLUMNS*self.ROWS)
+		]
+
 	def check_initial_parameters(self):
-		if (self.INITIAL_POSITION[0] >= self.MAZE_MAP_DIMENSIONS[0] 
-			or self.INITIAL_POSITION[1] >= self.MAZE_MAP_DIMENSIONS[1]):
+		if (self.INITIAL_X >= self.COLUMNS 
+			or self.INITIAL_Y >= self.ROWS):
 			err_mesg = 'Initial position is outside the dimensions of the maze map.'
 			return {'valid': False, 'error': err_mesg}
-		elif (self.FINAL_POSITION[0] >= self.MAZE_MAP_DIMENSIONS[0] 
-			or self.FINAL_POSITION[1] >= self.MAZE_MAP_DIMENSIONS[1]):
+		elif (self.FINAL_X >= self.COLUMNS 
+			or self.FINAL_Y >= self.ROWS):
 			err_mesg = 'Initial position is outside the dimensions of the maze map.'
 			return {'valid': False, 'error': err_mesg}
 		elif self.INITIAL_POSITION == self.FINAL_POSITION:
@@ -35,10 +51,10 @@ class MazeGenerator:
 		return {'valid':True}
 
 	def maze_map_index_from_coordinates(self, x, y):
-		return self.MAZE_MAP_DIMENSIONS[0]*y + x
+		return self.COLUMNS*y + x
 
 	def maze_to_string(self, 
-		maze, wall='██', space='  ', 
+		wall='██', space='  ', 
 		color_walls='', color_spaces='', 
 		highlighted_cells=[], highlight_color=bcolors.FAIL):
 	
@@ -47,8 +63,8 @@ class MazeGenerator:
 		wall = color_walls + wall + bcolors.ENDC
 		space = color_spaces + space + bcolors.ENDC
 		# Get size of the printed maze
-		width = self.MAZE_MAP_DIMENSIONS[0]*2 + 1
-		height = self.MAZE_MAP_DIMENSIONS[1]*2 + 1
+		width = self.COLUMNS*2 + 1
+		height = self.ROWS*2 + 1
 		# Initialize string maze
 		maze_str = ''
 
@@ -69,7 +85,7 @@ class MazeGenerator:
 					else:
 						x_idx = j//2
 						y_idx = i//2-1
-						box = maze[self.maze_map_index_from_coordinates(x_idx, y_idx)]
+						box = self.MAZE[self.maze_map_index_from_coordinates(x_idx, y_idx)]
 						if box[1]: 
 							ch = wall
 						else: 
@@ -103,7 +119,7 @@ class MazeGenerator:
 					else:
 						x_idx = j//2-1
 						y_idx = i//2
-						box = maze[self.maze_map_index_from_coordinates(x_idx, y_idx)]
+						box = self.MAZE[self.maze_map_index_from_coordinates(x_idx, y_idx)]
 						if box[0]:
 							ch = wall
 						else:
@@ -120,13 +136,197 @@ class MazeGenerator:
 				maze_str += '\n'
 		return maze_str
 
-	def random_directons():
-		return random.shuffle([0, 1, 2, 3])
+	def random_directons(self):
+		random.shuffle(self.DIR_LIST)
+		return self.DIR_LIST
 
-	def advance(self,curr_x, curr_y):
+	def check_advance_direction(self, curr_x, curr_y, direction):
+		if direction == 0: # North
+			new_x, new_y = curr_x, curr_y - 1
+			# First check bounds
+			if new_y < 0 or new_y > self.ROWS-1:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) in self.VISITED:
+				return False, None, None
+			# Then check walls
+			north_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][1]
+			if not north_wall:
+				return False, None, None
+			return True, new_x, new_y
+		elif direction == 1: # East
+			new_x, new_y = curr_x + 1, curr_y
+			# First check bounds
+			if new_x < 0 or new_x > self.COLUMNS-1:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) in self.VISITED:
+				return False, None, None
+			# Then check walls
+			east_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][0]
+			if not east_wall:
+				return False, None, None
+			return True, new_x, new_y
+		elif direction == 2: # South
+			new_x, new_y = curr_x, curr_y + 1
+			# First check bounds
+			if new_y < 0 or new_y > self.ROWS-1:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) in self.VISITED:
+				return False, None, None
+			# Then check walls
+			south_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][1]
+			if not south_wall:
+				return False, None, None
+			return True, new_x, new_y
+		elif direction == 3: # West
+			new_x, new_y = curr_x - 1, curr_y
+			# First check bounds
+			if new_x < 0 or new_x > self.COLUMNS-1:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) in self.VISITED:
+				return False, None, None
+			# Then check walls
+			west_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][0]
+			if not west_wall:
+				return False, None, None
+			return True, new_x, new_y
+		raise Exception(f'Invalid direction: {str(direction)}')
+
+	def check_backtrack_direction(self, curr_x, curr_y, direction):
+		if direction == 0: # North
+			new_x, new_y = curr_x, curr_y - 1
+			# First check bounds
+			if new_y < 0 or new_y > self.ROWS-1:
+				return False, None, None
+			# Then check if revisited
+			if (new_x, new_y) in self.REVISITED:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) not in self.VISITED:
+				return False, None, None
+			# Then check walls
+			north_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][1]
+			if north_wall:
+				return False, None, None
+			return True, new_x, new_y
+		elif direction == 1: # East
+			new_x, new_y = curr_x + 1, curr_y
+			# First check bounds
+			if new_x < 0 or new_x > self.COLUMNS-1:
+				return False, None, None
+			# Then check if revisited
+			if (new_x, new_y) in self.REVISITED:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) not in self.VISITED:
+				return False, None, None
+			# Then check walls
+			east_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][0]
+			if east_wall:
+				return False, None, None
+			return True, new_x, new_y
+		elif direction == 2: # South
+			new_x, new_y = curr_x, curr_y + 1
+			# First check bounds
+			if new_y < 0 or new_y > self.ROWS-1:
+				return False, None, None
+			# Then check if revisited
+			if (new_x, new_y) in self.REVISITED:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) not in self.VISITED:
+				return False, None, None
+			# Then check walls
+			south_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][1]
+			if south_wall:
+				return False, None, None
+			return True, new_x, new_y
+		elif direction == 3: # West
+			new_x, new_y = curr_x - 1, curr_y
+			# First check bounds
+			if new_x < 0 or new_x > self.COLUMNS-1:
+				return False, None, None
+			# Then check if revisited
+			if (new_x, new_y) in self.REVISITED:
+				return False, None, None
+			# Then check if visited
+			if (new_x, new_y) not in self.VISITED:
+				return False, None, None
+			# Then check walls
+			west_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][0]
+			if west_wall:
+				return False, None, None
+			return True, new_x, new_y
+		raise Exception(f'Invalid direction: {str(direction)}')
+
+	def set_wall(self, curr_x, curr_y, direction, value=1):
+		if direction == 0: # North
+			new_x, new_y = curr_x, curr_y - 1
+			i = self.maze_map_index_from_coordinates(new_x,new_y)
+			self.MAZE[i] = (self.MAZE[i][0], value)
+		elif direction == 1: # East
+			# new_x, new_y = curr_x + 1, curr_y
+			i = self.maze_map_index_from_coordinates(curr_x,curr_y)
+			self.MAZE[i] = (value, self.MAZE[i][1])
+		elif direction == 2: # South
+			# new_x, new_y = curr_x, curr_y + 1
+			i = self.maze_map_index_from_coordinates(curr_x,curr_y)
+			self.MAZE[i] = (self.MAZE[i][0], value)
+		elif direction == 3: # West
+			new_x, new_y = curr_x - 1, curr_y
+			i = self.maze_map_index_from_coordinates(new_x,new_y)
+			self.MAZE[i] = (value, self.MAZE[i][1])
+		else:
+			raise Exception(f'Invalid direction: {str(direction)}')
+
+	def remove_wall(self, curr_x, curr_y, direction):
+		self.set_wall(curr_x, curr_y, direction, value=0)
+
+	def add_wall(self, curr_x, curr_y, direction):
+		self.set_wall(curr_x, curr_y, direction, value=1)
+
+	def print_maze_step(self, pause=False):
+		visited = [cell for cell in self.VISITED if cell not in self.REVISITED]
+		str_maze = self.maze_to_string(space='██', color_walls=bcolors.OKBLUE, highlight_color=bcolors.FAIL, highlighted_cells=visited)
+		print(str_maze)
+		if pause:
+			input('Press Enter to continue')
+
+	def advance(self, curr_x, curr_y, verbose=False, pause=False):
+		if verbose:
+			self.print_maze_step(pause=pause)
 		directions = self.random_directons()
 		for direction in directions:
-			pass
-
-	def generate_maze(self):
-		return self.maze_map
+			can_advance, new_x, new_y = self.check_advance_direction(curr_x, curr_y, direction)
+			if can_advance:
+				# print(f'Advance from ({curr_x}, {curr_y}) to ({new_x}, {new_y})')
+				self.VISITED.append((new_x, new_y))
+				self.remove_wall(curr_x, curr_y, direction)
+				self.advance(new_x, new_y, verbose=verbose, pause=pause)
+				break
+		if len(self.REVISITED) < len(self.VISITED):
+			self.REVISITED.append((curr_x, curr_y))
+			self.backtrack(curr_x, curr_y, verbose=verbose, pause=pause)
+		return 'Done' # Finish this
+	
+	def backtrack(self, curr_x, curr_y, verbose=False, pause=False):
+		if verbose:
+			self.print_maze_step(pause=pause)
+		directions = self.random_directons()
+		for direction in directions:
+			can_backtrack, new_x, new_y = self.check_backtrack_direction(curr_x, curr_y, direction)
+			if can_backtrack:
+				# print(f'Backtrack from ({curr_x}, {curr_y}) to ({new_x}, {new_y})')
+				self.REVISITED.append((new_x, new_y))
+				self.backtrack(new_x, new_y, verbose=verbose, pause=pause)
+				break
+		self.advance(curr_x, curr_y, verbose=verbose, pause=pause)
+		return 'Done' # Finish this
+	
+	def generate_maze(self, verbose=False, pause=False):
+		self.VISITED.append(self.INITIAL_POSITION)
+		self.REVISITED.append(self.INITIAL_POSITION)
+		self.advance(self.INITIAL_X, self.INITIAL_Y, verbose=verbose, pause=pause)
