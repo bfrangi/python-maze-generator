@@ -1,6 +1,4 @@
-import random
-
-class bcolors:
+class MazeColors:
 	HEADER = '\033[95m'
 	OKBLUE = '\033[94m'
 	OKCYAN = '\033[96m'
@@ -63,13 +61,13 @@ class MazeGenerator:
 	def maze_to_string(self, 
 		wall='██', space='  ', 
 		color_walls='', color_spaces='', 
-		highlighted_cells=[], highlight_color=bcolors.FAIL,
+		highlighted_cells=[], highlight_color=MazeColors.FAIL,
 		show_solution=False):
 	
 		# CONFIG
 		# Set colors
-		wall = color_walls + wall + bcolors.ENDC
-		space = color_spaces + space + bcolors.ENDC
+		wall = color_walls + wall + MazeColors.ENDC
+		space = color_spaces + space + MazeColors.ENDC
 		# Get size of the printed maze
 		width = self.COLUMNS*2 + 1
 		height = self.ROWS*2 + 1
@@ -109,7 +107,7 @@ class MazeGenerator:
 								and 
 								(x_idx, y_idx + 1) in highlighted_cells
 								):
-								ch = highlight_color + space + bcolors.ENDC
+								ch = highlight_color + space + MazeColors.ENDC
 						maze_str += ch
 				maze_str += '\n'
 			# 1.3 Handle odd index rows (rows with cells)
@@ -122,7 +120,7 @@ class MazeGenerator:
 						x_idx = j//2
 						y_idx = i//2                    
 						if (x_idx, y_idx) in highlighted_cells:
-							ch = highlight_color + ch + bcolors.ENDC
+							ch = highlight_color + ch + MazeColors.ENDC
 						maze_str += ch
 					# 1.3.1.2 Handle first and last columns (always walls) 
 					elif j == 0 or j == width-1:
@@ -143,12 +141,13 @@ class MazeGenerator:
 								and 
 								(x_idx + 1, y_idx) in highlighted_cells
 								):
-								ch = highlight_color + space + bcolors.ENDC
+								ch = highlight_color + space + MazeColors.ENDC
 						maze_str += ch
 				maze_str += '\n'
 		return maze_str
 
 	def random_directons(self):
+		import random
 		random.shuffle(self.DIR_LIST)
 		return self.DIR_LIST
 
@@ -235,7 +234,7 @@ class MazeGenerator:
 
 	def print_maze_step(self, pause=False):
 		visited = [cell for cell in self.CELL_STACK + self.DEAD_ENDS]
-		str_maze = self.maze_to_string(space='██', color_walls=bcolors.OKBLUE, highlight_color=bcolors.FAIL, highlighted_cells=self.CELL_STACK)
+		str_maze = self.maze_to_string(space='██', color_walls=MazeColors.OKBLUE, highlight_color=MazeColors.FAIL, highlighted_cells=self.CELL_STACK)
 		print(str_maze)
 		if pause:
 			input('Press Enter to continue')
@@ -254,20 +253,23 @@ class MazeGenerator:
 	def remove_dead_end(self, coords):
 		self.DEAD_ENDS = [c for c in self.DEAD_ENDS if c!=coords]
 
-	def advance(self, curr_x, curr_y, verbose=False, pause=False):
+	def advance(self, curr_x, curr_y, verbose=False, pause=False, log=False):
 		directions = self.random_directons()
 		if verbose: self.print_maze_step(pause=pause)
 		for direction in directions:
 			can_advance, new_x, new_y = self.check_advance_direction(curr_x, curr_y, direction)
 			if can_advance:
-				if verbose: print(f'Advance from ({curr_x}, {curr_y}) to ({new_x}, {new_y})')
+				msg = f'Advancing from ({curr_x}, {curr_y}) to ({new_x}, {new_y})'
+				if verbose: print(msg)
+				if log: 
+					with open(log, 'a') as f: f.write(msg + '\n')
 				self.add_stack_cell((new_x, new_y))
 				self.remove_wall(curr_x, curr_y, direction)
-				return self.advance(new_x, new_y, verbose=verbose, pause=pause)
+				return self.advance(new_x, new_y, verbose=verbose, pause=pause, log=log)
 		if verbose: print(f'Cannot advance... backtracking')
-		return self.backtrack(curr_x, curr_y, verbose=verbose, pause=pause)
+		return self.backtrack(curr_x, curr_y, verbose=verbose, pause=pause, log=log)
 	
-	def backtrack(self, curr_x, curr_y, verbose=False, pause=False):
+	def backtrack(self, curr_x, curr_y, verbose=False, pause=False, log=False):
 		if (curr_x, curr_y) == self.FINAL_POSITION:
 			self.SOLUTION = self.CELL_STACK + [self.FINAL_POSITION]
 		if verbose: self.print_maze_step(pause=pause)
@@ -278,10 +280,17 @@ class MazeGenerator:
 		self.add_dead_end(current_cell)
 		self.remove_stack_cell(current_cell)
 		previous_cell = self.CELL_STACK[-1]
-		if verbose: print(f'Backtracking from ({curr_x}, {curr_y}) to ({previous_cell[0]}, {previous_cell[1]})')
-		return self.advance(previous_cell[0], previous_cell[1], verbose=verbose, pause=pause)
+		msg = f'Backtracking from ({curr_x}, {curr_y}) to ({previous_cell[0]}, {previous_cell[1]})'
+		if verbose: print(msg)
+		if log: 
+			with open(log, 'a') as f: f.write(msg + '\n')
+		return self.advance(previous_cell[0], previous_cell[1], verbose=verbose, pause=pause, log=log)
 
-	def generate_maze(self, verbose=False, pause=False):
+	def generate_maze(self, verbose=False, pause=False, log=False):
+		if log: 
+			with open(log, 'w') as f:
+				f.write('GENERATION LOG:\n')
+
 		self.add_stack_cell(self.INITIAL_POSITION)
-		maze = self.advance(self.INITIAL_X, self.INITIAL_Y, verbose=verbose, pause=pause)
+		maze = self.advance(self.INITIAL_X, self.INITIAL_Y, verbose=verbose, pause=pause, log=log)
 		return maze
