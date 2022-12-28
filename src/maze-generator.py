@@ -1,19 +1,10 @@
-from lib import MazeGenerator
+from lib import bcolors, MazeGenerator
 import sys
 sys.setrecursionlimit(1000000)
 
-MAZE_MAP_DIMENSIONS = (40, 16)
+MAZE_MAP_DIMENSIONS = (60, 30)
 INITIAL_POSITION = (0, 0)
-FINAL_POSITION = (0, 1)
-
-# maze_map = [# (E, S)
-#     (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), ('', 1), 
-#     (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), ('', 1), 
-#     (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), ('', 1), 
-#     (1, ''), (1, ''), (1, ''), (1, ''), (1, ''), ('', '')
-# ]
-
-position_buffer = [INITIAL_POSITION]
+FINAL_POSITION = (59, 29)
 
 
 def main():
@@ -22,14 +13,21 @@ def main():
         initial_position=INITIAL_POSITION,
         final_position=FINAL_POSITION
     )
-    mg.generate_maze(verbose=True, pause=True)
-    print(mg.maze_to_string())
+    mg.generate_maze(
+        verbose=False,
+        pause=True
+        )
 
-    # print(mg.maze_to_string(
-    #     space='██', 
-    #     color_walls=bcolors.OKBLUE, 
-    #     highlighted_cells=[(0, 0),(0, 1),(0, 2),(5, 3),(2, 1),(2, 3),(2, 2),(5, 2),(4, 3),]
-    #     ))
+    print(mg.maze_to_string(
+        space='██', 
+        color_walls=bcolors.OKBLUE,
+        show_solution=True
+        ))
+
+    print(mg.maze_to_string(
+        space='██', 
+        color_walls=bcolors.OKBLUE,
+        ))
 
 if __name__=='__main__':
     main()

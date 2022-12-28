@@ -12,9 +12,10 @@ class bcolors:
 	UNDERLINE = '\033[4m'
 
 class MazeGenerator:
-	DIR_LIST = [0, 1, 2, 3]
-	VISITED = []
-	REVISITED = []
+	DIR_LIST = [0, 1, 2, 3] # N, E, S, W
+	CELL_STACK = []
+	DEAD_ENDS = []
+	SOLUTION = []
 
 	def __init__(self, maze_dimensions, initial_position, final_position):
 		self.MAZE_MAP_DIMENSIONS = maze_dimensions
@@ -32,6 +33,12 @@ class MazeGenerator:
 			raise Exception(valdity_check['error'])
 	
 	def init_maze(self):
+		# MAZE = [# (E, S)
+		#     (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), ('', 1), 
+		#     (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), ('', 1), 
+		#     (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), ('', 1), 
+		#     (1, ''), (1, ''), (1, ''), (1, ''), (1, ''), ('', '')
+		# ]
 		self.MAZE = [# (E, S)
 			(1, 1) for i in range(self.COLUMNS*self.ROWS)
 		]
@@ -56,7 +63,8 @@ class MazeGenerator:
 	def maze_to_string(self, 
 		wall='██', space='  ', 
 		color_walls='', color_spaces='', 
-		highlighted_cells=[], highlight_color=bcolors.FAIL):
+		highlighted_cells=[], highlight_color=bcolors.FAIL,
+		show_solution=False):
 	
 		# CONFIG
 		# Set colors
@@ -67,6 +75,10 @@ class MazeGenerator:
 		height = self.ROWS*2 + 1
 		# Initialize string maze
 		maze_str = ''
+		# If show_solution is set to TRUE, override
+		# other cell highlights
+		if show_solution:
+			highlighted_cells = self.SOLUTION
 
 		# CONVERT MAZE TO STRING
 		# 1. Iterate over the rows
@@ -147,7 +159,7 @@ class MazeGenerator:
 			if new_y < 0 or new_y > self.ROWS-1:
 				return False, None, None
 			# Then check if visited
-			if (new_x, new_y) in self.VISITED:
+			if (new_x, new_y) in self.CELL_STACK + self.DEAD_ENDS:
 				return False, None, None
 			# Then check walls
 			north_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][1]
@@ -160,7 +172,7 @@ class MazeGenerator:
 			if new_x < 0 or new_x > self.COLUMNS-1:
 				return False, None, None
 			# Then check if visited
-			if (new_x, new_y) in self.VISITED:
+			if (new_x, new_y) in self.CELL_STACK + self.DEAD_ENDS:
 				return False, None, None
 			# Then check walls
 			east_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][0]
@@ -173,7 +185,7 @@ class MazeGenerator:
 			if new_y < 0 or new_y > self.ROWS-1:
 				return False, None, None
 			# Then check if visited
-			if (new_x, new_y) in self.VISITED:
+			if (new_x, new_y) in self.CELL_STACK + self.DEAD_ENDS:
 				return False, None, None
 			# Then check walls
 			south_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][1]
@@ -186,78 +198,11 @@ class MazeGenerator:
 			if new_x < 0 or new_x > self.COLUMNS-1:
 				return False, None, None
 			# Then check if visited
-			if (new_x, new_y) in self.VISITED:
+			if (new_x, new_y) in self.CELL_STACK + self.DEAD_ENDS:
 				return False, None, None
 			# Then check walls
 			west_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][0]
 			if not west_wall:
-				return False, None, None
-			return True, new_x, new_y
-		raise Exception(f'Invalid direction: {str(direction)}')
-
-	def check_backtrack_direction(self, curr_x, curr_y, direction):
-		if direction == 0: # North
-			new_x, new_y = curr_x, curr_y - 1
-			# First check bounds
-			if new_y < 0 or new_y > self.ROWS-1:
-				return False, None, None
-			# Then check if revisited
-			if (new_x, new_y) in self.REVISITED:
-				return False, None, None
-			# Then check if visited
-			if (new_x, new_y) not in self.VISITED:
-				return False, None, None
-			# Then check walls
-			north_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][1]
-			if north_wall:
-				return False, None, None
-			return True, new_x, new_y
-		elif direction == 1: # East
-			new_x, new_y = curr_x + 1, curr_y
-			# First check bounds
-			if new_x < 0 or new_x > self.COLUMNS-1:
-				return False, None, None
-			# Then check if revisited
-			if (new_x, new_y) in self.REVISITED:
-				return False, None, None
-			# Then check if visited
-			if (new_x, new_y) not in self.VISITED:
-				return False, None, None
-			# Then check walls
-			east_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][0]
-			if east_wall:
-				return False, None, None
-			return True, new_x, new_y
-		elif direction == 2: # South
-			new_x, new_y = curr_x, curr_y + 1
-			# First check bounds
-			if new_y < 0 or new_y > self.ROWS-1:
-				return False, None, None
-			# Then check if revisited
-			if (new_x, new_y) in self.REVISITED:
-				return False, None, None
-			# Then check if visited
-			if (new_x, new_y) not in self.VISITED:
-				return False, None, None
-			# Then check walls
-			south_wall = self.MAZE[self.maze_map_index_from_coordinates(curr_x,curr_y)][1]
-			if south_wall:
-				return False, None, None
-			return True, new_x, new_y
-		elif direction == 3: # West
-			new_x, new_y = curr_x - 1, curr_y
-			# First check bounds
-			if new_x < 0 or new_x > self.COLUMNS-1:
-				return False, None, None
-			# Then check if revisited
-			if (new_x, new_y) in self.REVISITED:
-				return False, None, None
-			# Then check if visited
-			if (new_x, new_y) not in self.VISITED:
-				return False, None, None
-			# Then check walls
-			west_wall = self.MAZE[self.maze_map_index_from_coordinates(new_x,new_y)][0]
-			if west_wall:
 				return False, None, None
 			return True, new_x, new_y
 		raise Exception(f'Invalid direction: {str(direction)}')
@@ -289,44 +234,54 @@ class MazeGenerator:
 		self.set_wall(curr_x, curr_y, direction, value=1)
 
 	def print_maze_step(self, pause=False):
-		visited = [cell for cell in self.VISITED if cell not in self.REVISITED]
-		str_maze = self.maze_to_string(space='██', color_walls=bcolors.OKBLUE, highlight_color=bcolors.FAIL, highlighted_cells=visited)
+		visited = [cell for cell in self.CELL_STACK + self.DEAD_ENDS]
+		str_maze = self.maze_to_string(space='██', color_walls=bcolors.OKBLUE, highlight_color=bcolors.FAIL, highlighted_cells=self.CELL_STACK)
 		print(str_maze)
 		if pause:
 			input('Press Enter to continue')
 
+	def add_stack_cell(self, coords):
+		if coords not in self.CELL_STACK:
+			self.CELL_STACK.append(coords)
+	
+	def remove_stack_cell(self, coords):
+		self.CELL_STACK = [c for c in self.CELL_STACK if c!=coords]
+
+	def add_dead_end(self, coords):
+		if coords not in self.DEAD_ENDS:
+			self.DEAD_ENDS.append(coords)
+	
+	def remove_dead_end(self, coords):
+		self.DEAD_ENDS = [c for c in self.DEAD_ENDS if c!=coords]
+
 	def advance(self, curr_x, curr_y, verbose=False, pause=False):
-		if verbose:
-			self.print_maze_step(pause=pause)
 		directions = self.random_directons()
+		if verbose: self.print_maze_step(pause=pause)
 		for direction in directions:
 			can_advance, new_x, new_y = self.check_advance_direction(curr_x, curr_y, direction)
 			if can_advance:
-				# print(f'Advance from ({curr_x}, {curr_y}) to ({new_x}, {new_y})')
-				self.VISITED.append((new_x, new_y))
+				if verbose: print(f'Advance from ({curr_x}, {curr_y}) to ({new_x}, {new_y})')
+				self.add_stack_cell((new_x, new_y))
 				self.remove_wall(curr_x, curr_y, direction)
-				self.advance(new_x, new_y, verbose=verbose, pause=pause)
-				break
-		if len(self.REVISITED) < len(self.VISITED):
-			self.REVISITED.append((curr_x, curr_y))
-			self.backtrack(curr_x, curr_y, verbose=verbose, pause=pause)
-		return 'Done' # Finish this
+				return self.advance(new_x, new_y, verbose=verbose, pause=pause)
+		if verbose: print(f'Cannot advance... backtracking')
+		return self.backtrack(curr_x, curr_y, verbose=verbose, pause=pause)
 	
 	def backtrack(self, curr_x, curr_y, verbose=False, pause=False):
-		if verbose:
-			self.print_maze_step(pause=pause)
-		directions = self.random_directons()
-		for direction in directions:
-			can_backtrack, new_x, new_y = self.check_backtrack_direction(curr_x, curr_y, direction)
-			if can_backtrack:
-				# print(f'Backtrack from ({curr_x}, {curr_y}) to ({new_x}, {new_y})')
-				self.REVISITED.append((new_x, new_y))
-				self.backtrack(new_x, new_y, verbose=verbose, pause=pause)
-				break
-		self.advance(curr_x, curr_y, verbose=verbose, pause=pause)
-		return 'Done' # Finish this
-	
+		if (curr_x, curr_y) == self.FINAL_POSITION:
+			self.SOLUTION = self.CELL_STACK + [self.FINAL_POSITION]
+		if verbose: self.print_maze_step(pause=pause)
+		current_cell = (curr_x, curr_y)
+		del self.CELL_STACK[-1]
+		if not self.CELL_STACK:
+			return self.MAZE
+		self.add_dead_end(current_cell)
+		self.remove_stack_cell(current_cell)
+		previous_cell = self.CELL_STACK[-1]
+		if verbose: print(f'Backtracking from ({curr_x}, {curr_y}) to ({previous_cell[0]}, {previous_cell[1]})')
+		return self.advance(previous_cell[0], previous_cell[1], verbose=verbose, pause=pause)
+
 	def generate_maze(self, verbose=False, pause=False):
-		self.VISITED.append(self.INITIAL_POSITION)
-		self.REVISITED.append(self.INITIAL_POSITION)
-		self.advance(self.INITIAL_X, self.INITIAL_Y, verbose=verbose, pause=pause)
+		self.add_stack_cell(self.INITIAL_POSITION)
+		maze = self.advance(self.INITIAL_X, self.INITIAL_Y, verbose=verbose, pause=pause)
+		return maze
