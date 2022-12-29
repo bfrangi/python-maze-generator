@@ -1,4 +1,7 @@
+
 # Python Backtracking Maze Generator
+
+![Banner](media/mazeBanner.png)
 
 This repo hosts a recursive backtracking maze generator implemented in `python`. The algorithm (**Randomized depth-first search**) is explained in [this](https://en.wikipedia.org/wiki/Maze_generation_algorithm#Randomized_depth-first_search) Wikipedia article.
 
