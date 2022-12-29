@@ -16,7 +16,7 @@ class MazeGenerator:
 	DEAD_ENDS = []
 	SOLUTION = []
 
-	def __init__(self, maze_dimensions, initial_position, final_position):
+	def __init__(self, maze_dimensions, initial_position, final_position, direction_weights=[1,1,1,1]):
 		self.MAZE_MAP_DIMENSIONS = maze_dimensions
 		self.COLUMNS = maze_dimensions[0]
 		self.ROWS = maze_dimensions[1]
@@ -26,6 +26,7 @@ class MazeGenerator:
 		self.FINAL_POSITION = final_position
 		self.FINAL_X = final_position[0]
 		self.FINAL_Y = final_position[1]
+		self.DIRECTION_WEIGHTS = direction_weights
 		self.init_maze()
 		valdity_check = self.check_initial_parameters()
 		if not valdity_check['valid']:
@@ -149,10 +150,15 @@ class MazeGenerator:
 				maze_str += '\n'
 		return maze_str
 
-	def random_directons(self):
+	def weighted_shuffle(self, items, weights):
+		# https://softwareengineering.stackexchange.com/a/344274/424977
 		import random
-		random.shuffle(self.DIR_LIST)
-		return self.DIR_LIST
+		total_weight = sum(weights)
+		order = sorted(range(len(items)), key=lambda i: random.random() ** (weights[i]/total_weight))
+		return [items[i] for i in order]
+
+	def random_directons(self):
+		return self.weighted_shuffle(self.DIR_LIST, self.DIRECTION_WEIGHTS)
 
 	def check_advance_direction(self, curr_x, curr_y, direction):
 		if direction == 0:  # North

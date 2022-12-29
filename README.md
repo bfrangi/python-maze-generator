@@ -1,7 +1,7 @@
 
 # Python Backtracking Maze Generator
 
-![Banner](media/mazeBanner.png)
+![Banner](media/mazeBanner2.png)
 
 This repo hosts a recursive backtracking maze generator implemented in `python`. The algorithm (**Randomized depth-first search**) is explained in [this](https://en.wikipedia.org/wiki/Maze_generation_algorithm#Randomized_depth-first_search) Wikipedia article.
 
@@ -23,6 +23,8 @@ mg = MazeGenerator(
 ```
 
 This will create a $20\times20$ maze with the start at the top right and the end at the bottom left of the maze.
+
+> Note: there is an optional parameter named `direction_weights` (defaults to `[1, 1, 1, 1]`) that can be used to set the relative probability for choosing the different advance directions at each step of the algorithm. They can be given as a list of four elements (for example, `[20, 30, 40, 10]`) that correspond to the relative probability of choosing, respectively, "north", "east", "south" or "west".
 
 Once that is done, you can generate the maze by invoking the `generate_maze` method of the generator:
 
